@@ -27,7 +27,7 @@ public class Game : PersistableObject
     {
         if (Input.GetKeyDown(createKey))
         {
-            CreateObject();
+            CreateShape();
         }
         else if (Input.GetKeyDown(newGameKey))
         {
@@ -36,7 +36,7 @@ public class Game : PersistableObject
         else if (Input.GetKeyDown(saveKey))
         {
             //Save();
-            storage.Save(this);
+            storage.Save(this,saveVersion);
         }
         else if (Input.GetKeyDown(loadKey))
         {
@@ -46,13 +46,14 @@ public class Game : PersistableObject
         }
     }
 
-    void CreateObject()
+    void CreateShape()
     {
         Shape instance = shapeFactory.GetRandom();
         Transform t = instance.transform;
         t.localPosition = Random.insideUnitSphere * 5f;
         t.localRotation = Random.rotation;
         t.localScale = Vector3.one * Random.Range(0.1f, 1f);
+        instance.SetColor(Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.25f, 1f, 1f, 1f));
         shapes.Add(instance);
     }
 
@@ -67,11 +68,12 @@ public class Game : PersistableObject
 
     public override void Save(GameDataWriter writer)
     {
-        writer.Write(-saveVersion);
+        //writer.Write(-saveVersion);
         writer.Write(shapes.Count);
         for (int i = 0; i < shapes.Count; i++)
         {
             writer.Write(shapes[i].ShapeId);
+            writer.Write(shapes[i].MaterialId);
             shapes[i].Save(writer);
         }
     }
@@ -88,7 +90,8 @@ public class Game : PersistableObject
         for (int i = 0; i < count; i++)
         {
             int shapeId = version > 0 ? reader.ReadInt() : 0;
-            Shape instance = shapeFactory.Get(shapeId);
+            int materialId = version > 0 ? reader.ReadInt() : 0;
+            Shape instance = shapeFactory.Get(shapeId,materialId);
             instance.Load(reader);
             shapes.Add(instance);
         }

@@ -5,10 +5,12 @@ using System.IO;
 
 public class GameDataReader
 {
+    public int Version { get; }
     BinaryReader reader;
-    public GameDataReader(BinaryReader reader)
+    public GameDataReader(BinaryReader reader,int version)
     {
         this.reader = reader;
+        this.Version = version;
     }
 
     public float ReadFloat()
@@ -35,5 +37,14 @@ public class GameDataReader
         value.y = reader.ReadSingle();
         value.z = reader.ReadSingle();
         return value;
+    }
+    public Color ReadColor()
+    {
+        Color color;
+        color.r = reader.ReadSingle();
+        color.g = reader.ReadSingle();
+        color.b = reader.ReadSingle();
+        color.a = reader.ReadSingle();
+        return color;
     }
 }

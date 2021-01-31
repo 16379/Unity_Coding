@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class Shape : PersistableObject
 {
+    static int colorPropertyId = Shader.PropertyToID("_Color");
+    static MaterialPropertyBlock sharePropertyBlock;
+
     Color color;
     int shapeId = int.MinValue;
     MeshRenderer meshRenderer;
@@ -40,9 +43,13 @@ public class Shape : PersistableObject
     {
         this.color = color;
         //meshRenderer.material.color = color;
-        var propertyBlock = new MaterialPropertyBlock();
-        propertyBlock.SetColor("_Color", color);
-        meshRenderer.SetPropertyBlock(propertyBlock);
+        //var propertyBlock = new MaterialPropertyBlock();
+        if (sharePropertyBlock == null)
+        {
+            sharePropertyBlock = new MaterialPropertyBlock();
+        }
+        sharePropertyBlock.SetColor(colorPropertyId, color);
+        meshRenderer.SetPropertyBlock(sharePropertyBlock);
     }
 
     public override void Save(GameDataWriter writer)

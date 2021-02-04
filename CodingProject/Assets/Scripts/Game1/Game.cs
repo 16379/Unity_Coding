@@ -8,6 +8,9 @@ public class Game : PersistableObject
     const int saveVersion = 1;
 
     List<Shape> shapes;
+    float creationProgress;
+    float destructionProgress;
+
     //public PersistableObject prefab;
     public ShapeFactory shapeFactory;
     public PersistentStorage storage;
@@ -15,7 +18,11 @@ public class Game : PersistableObject
     public KeyCode newGameKey = KeyCode.F;
     public KeyCode saveKey = KeyCode.S;
     public KeyCode loadKey = KeyCode.L;
-    
+    public KeyCode destroyKey = KeyCode.X;
+
+    public float CreationSpeed { get; set; }
+    public float DestructionSpeed { get; set; }
+
     private void Awake()
     {
         shapes = new List<Shape>();
@@ -44,6 +51,27 @@ public class Game : PersistableObject
             BeginNewGame();
             storage.Load(this);
         }
+        else if (Input.GetKeyDown(destroyKey))
+        {
+            DestroyShape();
+        }
+
+        creationProgress += Time.deltaTime * CreationSpeed;
+        Debug.Log("creationProgress这个值是:" + creationProgress);
+        while (creationProgress >= 1f)
+        {
+            Debug.LogError("创建一个");
+            creationProgress -= 1f;
+            CreateShape();
+        }
+        destructionProgress += Time.deltaTime * DestructionSpeed;
+        Debug.Log("destructionProgress这个值是:" + destructionProgress);
+        while (destructionProgress >= 1)
+        {
+            Debug.LogError("删除一个");
+            destructionProgress -= 1;
+            DestroyShape();
+        }
     }
 
     void CreateShape()
@@ -61,7 +89,8 @@ public class Game : PersistableObject
     {
         for (int i = 0; i < shapes.Count; i++)
         {
-            Destroy(shapes[i].gameObject);
+            //Destroy(shapes[i].gameObject);
+            shapeFactory.Reclaim(shapes[i]);
         }
         shapes.Clear();
     }
@@ -94,6 +123,19 @@ public class Game : PersistableObject
             Shape instance = shapeFactory.Get(shapeId,materialId);
             instance.Load(reader);
             shapes.Add(instance);
+        }
+    }
+
+    void DestroyShape()
+    {
+        if(shapes.Count > 0)
+        {
+            int index = Random.Range(0, shapes.Count);
+            //Destroy(shapes[index].gameObject);
+            shapeFactory.Reclaim(shapes[index]);
+            int lastIndex = shapes.Count - 1;
+            shapes[index] = shapes[lastIndex];
+            shapes.RemoveAt(lastIndex);
         }
     }
 

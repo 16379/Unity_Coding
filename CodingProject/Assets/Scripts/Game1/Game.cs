@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Game : PersistableObject
 {
-    const int saveVersion = 1;
+    const int saveVersion = 2;
 
     List<Shape> shapes;
     float creationProgress;
     float destructionProgress;
+    int loadedLevelBuildIndex;
 
     //public PersistableObject prefab;
     public ShapeFactory shapeFactory;
@@ -20,12 +22,35 @@ public class Game : PersistableObject
     public KeyCode loadKey = KeyCode.L;
     public KeyCode destroyKey = KeyCode.X;
 
+    public int levelCount;
+
     public float CreationSpeed { get; set; }
     public float DestructionSpeed { get; set; }
 
-    private void Awake()
+    private void Start()
     {
         shapes = new List<Shape>();
+        if (Application.isEditor)
+        {
+            //Scene loadedLevel = SceneManager.GetSceneByName("Level 1");
+            //if (loadedLevel.isLoaded)
+            //{
+            //    SceneManager.SetActiveScene(loadedLevel);
+            //    return;
+            //}
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene loadedScene = SceneManager.GetSceneAt(i);
+                if (loadedScene.name.Contains("Level "))
+                {
+                    SceneManager.SetActiveScene(loadedScene);
+                    loadedLevelBuildIndex = loadedScene.buildIndex;
+                    return;
+                }
+            }
+           
+        }
+        StartCoroutine(LoadLevel(1));
     }
 
 
@@ -55,20 +80,28 @@ public class Game : PersistableObject
         {
             DestroyShape();
         }
-
+        else
+        {
+            for (int i = 1; i <= levelCount; i++)
+            {
+                if(Input.GetKeyDown(KeyCode.Alpha0 + i))
+                {
+                    BeginNewGame();
+                    StartCoroutine(LoadLevel(i));
+                }
+            }
+        }
+        //自动创建
         creationProgress += Time.deltaTime * CreationSpeed;
-        Debug.Log("creationProgress这个值是:" + creationProgress);
         while (creationProgress >= 1f)
         {
-            Debug.LogError("创建一个");
             creationProgress -= 1f;
             CreateShape();
         }
+        //自动删除
         destructionProgress += Time.deltaTime * DestructionSpeed;
-        Debug.Log("destructionProgress这个值是:" + destructionProgress);
         while (destructionProgress >= 1)
         {
-            Debug.LogError("删除一个");
             destructionProgress -= 1;
             DestroyShape();
         }
@@ -99,6 +132,7 @@ public class Game : PersistableObject
     {
         //writer.Write(-saveVersion);
         writer.Write(shapes.Count);
+        writer.Write(loadedLevelBuildIndex);
         for (int i = 0; i < shapes.Count; i++)
         {
             writer.Write(shapes[i].ShapeId);
@@ -115,6 +149,7 @@ public class Game : PersistableObject
             return;
         }
         int count = version <= 0 ? -version : reader.ReadInt();
+        StartCoroutine(LoadLevel(version < 2 ? 1 : reader.ReadInt()));
         //int count = reader.ReadInt();
         for (int i = 0; i < count; i++)
         {
@@ -138,5 +173,20 @@ public class Game : PersistableObject
             shapes.RemoveAt(lastIndex);
         }
     }
+    IEnumerator LoadLevel(int levelBuildIndex)
+    {
+        enabled = false;
+        if(loadedLevelBuildIndex > 0)
+        {
+            yield return SceneManager.UnloadSceneAsync(loadedLevelBuildIndex);
+        }
+        //SceneManager.LoadScene("Level 1",LoadSceneMode.Additive);
+        //yield return null;
+        yield return SceneManager.LoadSceneAsync(levelBuildIndex, LoadSceneMode.Additive);
+        SceneManager.SetActiveScene(SceneManager.GetSceneByBuildIndex(levelBuildIndex));
+        loadedLevelBuildIndex = levelBuildIndex;
+        enabled = true;
+    }
+
 
 }

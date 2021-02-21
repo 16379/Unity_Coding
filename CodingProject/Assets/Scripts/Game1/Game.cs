@@ -6,16 +6,19 @@ using UnityEngine.SceneManagement;
 
 public class Game : PersistableObject
 {
+    public static Game Instance { get; private set; }
     const int saveVersion = 2;
 
     List<Shape> shapes;
     float creationProgress;
     float destructionProgress;
     int loadedLevelBuildIndex;
-
+    [SerializeField]
+    ShapeFactory shapeFactory;
     //public PersistableObject prefab;
-    public ShapeFactory shapeFactory;
+    //public ShapeFactory shapeFactory;
     public PersistentStorage storage;
+    //public SpawnZone spawnZone;
     public KeyCode createKey = KeyCode.C;
     public KeyCode newGameKey = KeyCode.F;
     public KeyCode saveKey = KeyCode.S;
@@ -26,7 +29,12 @@ public class Game : PersistableObject
 
     public float CreationSpeed { get; set; }
     public float DestructionSpeed { get; set; }
+    public SpawnZone SpawnZoneOfLevel { get; set; }
 
+    private void OnEnable()
+    {
+        Instance = this;
+    }
     private void Start()
     {
         shapes = new List<Shape>();
@@ -111,7 +119,8 @@ public class Game : PersistableObject
     {
         Shape instance = shapeFactory.GetRandom();
         Transform t = instance.transform;
-        t.localPosition = Random.insideUnitSphere * 5f;
+        //t.localPosition = Random.insideUnitSphere * 5f;
+        t.localPosition = SpawnZoneOfLevel.SpawnPoint;
         t.localRotation = Random.rotation;
         t.localScale = Vector3.one * Random.Range(0.1f, 1f);
         instance.SetColor(Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.25f, 1f, 1f, 1f));

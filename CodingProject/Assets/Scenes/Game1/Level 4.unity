@@ -315,7 +315,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b2c5925d749b3748be0526d29c3e282, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  spawnZones: []
+  spawnZones:
+  - {fileID: 1145094651}
+  - {fileID: 1566688115}
   sequential: 0
 --- !u!1 &1822688299
 GameObject:

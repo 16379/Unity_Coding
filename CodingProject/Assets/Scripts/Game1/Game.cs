@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class Game : PersistableObject
 {
@@ -18,7 +19,10 @@ public class Game : PersistableObject
     Random.State mainRandomState;
     [SerializeField]
     bool reseedOnLoad;
-
+    [SerializeField]
+    Slider creationSpeedSlider;
+    [SerializeField]
+    Slider destructionSpeedSlider;
 
     //public PersistableObject prefab;
     //public ShapeFactory shapeFactory;
@@ -107,6 +111,11 @@ public class Game : PersistableObject
                 }
             }
         }
+        
+    }
+
+    private void FixedUpdate()
+    {
         //自动创建
         creationProgress += Time.deltaTime * CreationSpeed;
         while (creationProgress >= 1f)
@@ -141,6 +150,8 @@ public class Game : PersistableObject
         int seed = Random.Range(0, int.MaxValue);
         mainRandomState = Random.state;
         Random.InitState(seed);
+        creationSpeedSlider.value = CreationSpeed = 0;
+        destructionSpeedSlider.value = DestructionSpeed = 0;
         for (int i = 0; i < shapes.Count; i++)
         {
             //Destroy(shapes[i].gameObject);
@@ -154,6 +165,10 @@ public class Game : PersistableObject
         //writer.Write(-saveVersion);
         writer.Write(shapes.Count);
         writer.Write(Random.state);
+        writer.Write(CreationSpeed);
+        writer.Write(creationProgress);
+        writer.Write(DestructionSpeed);
+        writer.Write(destructionProgress);
         writer.Write(loadedLevelBuildIndex);
         GameLevel.Current.Save(writer);
         for (int i = 0; i < shapes.Count; i++)
@@ -185,6 +200,10 @@ public class Game : PersistableObject
             {
                 Random.state = state;
             }
+            creationSpeedSlider.value = CreationSpeed = reader.ReadFloat();
+            creationProgress = reader.ReadFloat();
+            destructionSpeedSlider.value = DestructionSpeed = reader.ReadFloat();
+            destructionProgress = reader.ReadFloat();
         }
         //StartCoroutine(LoadLevel(version < 2 ? 1 : reader.ReadInt()));
         yield return LoadLevel(version < 2 ? 1 : reader.ReadInt());

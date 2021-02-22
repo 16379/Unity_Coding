@@ -6,8 +6,8 @@ using UnityEngine.SceneManagement;
 
 public class Game : PersistableObject
 {
-    public static Game Instance { get; private set; }
-    const int saveVersion = 2;
+    //public static Game Instance { get; private set; }
+    const int saveVersion = 3;
 
     List<Shape> shapes;
     float creationProgress;
@@ -15,6 +15,11 @@ public class Game : PersistableObject
     int loadedLevelBuildIndex;
     [SerializeField]
     ShapeFactory shapeFactory;
+    Random.State mainRandomState;
+    [SerializeField]
+    bool reseedOnLoad;
+
+
     //public PersistableObject prefab;
     //public ShapeFactory shapeFactory;
     public PersistentStorage storage;
@@ -29,14 +34,15 @@ public class Game : PersistableObject
 
     public float CreationSpeed { get; set; }
     public float DestructionSpeed { get; set; }
-    public SpawnZone SpawnZoneOfLevel { get; set; }
+    //public SpawnZone SpawnZoneOfLevel { get; set; }
 
-    private void OnEnable()
-    {
-        Instance = this;
-    }
+    //private void OnEnable()
+    //{
+    //    Instance = this;
+    //}
     private void Start()
     {
+        mainRandomState = Random.state;
         shapes = new List<Shape>();
         if (Application.isEditor)
         {
@@ -58,6 +64,7 @@ public class Game : PersistableObject
             }
            
         }
+        BeginNewGame();
         StartCoroutine(LoadLevel(1));
     }
 
@@ -72,6 +79,7 @@ public class Game : PersistableObject
         else if (Input.GetKeyDown(newGameKey))
         {
             BeginNewGame();
+            StartCoroutine(LoadLevel(loadedLevelBuildIndex));
         }
         else if (Input.GetKeyDown(saveKey))
         {
@@ -120,7 +128,7 @@ public class Game : PersistableObject
         Shape instance = shapeFactory.GetRandom();
         Transform t = instance.transform;
         //t.localPosition = Random.insideUnitSphere * 5f;
-        t.localPosition = SpawnZoneOfLevel.SpawnPoint;
+        t.localPosition = GameLevel.Current.SpawnPoint;
         t.localRotation = Random.rotation;
         t.localScale = Vector3.one * Random.Range(0.1f, 1f);
         instance.SetColor(Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.25f, 1f, 1f, 1f));
@@ -129,6 +137,10 @@ public class Game : PersistableObject
 
     void BeginNewGame()
     {
+        Random.state = mainRandomState;
+        int seed = Random.Range(0, int.MaxValue);
+        mainRandomState = Random.state;
+        Random.InitState(seed);
         for (int i = 0; i < shapes.Count; i++)
         {
             //Destroy(shapes[i].gameObject);
@@ -141,7 +153,9 @@ public class Game : PersistableObject
     {
         //writer.Write(-saveVersion);
         writer.Write(shapes.Count);
+        writer.Write(Random.state);
         writer.Write(loadedLevelBuildIndex);
+        GameLevel.Current.Save(writer);
         for (int i = 0; i < shapes.Count; i++)
         {
             writer.Write(shapes[i].ShapeId);
@@ -151,14 +165,33 @@ public class Game : PersistableObject
     }
     public override void Load(GameDataReader reader)
     {
-        int version = -reader.ReadInt();
-        if(version > saveVersion)
+        int version = reader.Version;
+        if (version > saveVersion)
         {
             Debug.LogError("Unsupported future save version" + version);
             return;
         }
+        StartCoroutine(LoadGame(reader));
+    }
+
+    IEnumerator LoadGame(GameDataReader reader)
+    {
+        int version = reader.Version;
         int count = version <= 0 ? -version : reader.ReadInt();
-        StartCoroutine(LoadLevel(version < 2 ? 1 : reader.ReadInt()));
+        if(version >= 3)
+        {
+            Random.State state = reader.ReadRandomState();
+            if (!reseedOnLoad)
+            {
+                Random.state = state;
+            }
+        }
+        //StartCoroutine(LoadLevel(version < 2 ? 1 : reader.ReadInt()));
+        yield return LoadLevel(version < 2 ? 1 : reader.ReadInt());
+        if(version >= 3)
+        {
+            GameLevel.Current.Load(reader);
+        }
         //int count = reader.ReadInt();
         for (int i = 0; i < count; i++)
         {

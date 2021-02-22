@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public abstract class SpawnZone : MonoBehaviour
+public abstract class SpawnZone : PersistableObject
 {
     //[SerializeField]
     //bool surfaceOnly;
@@ -21,5 +21,5 @@ public abstract class SpawnZone : MonoBehaviour
     //    Gizmos.matrix = transform.localToWorldMatrix;
     //    Gizmos.DrawWireSphere(Vector3.zero, 1f);
     //}
-
+   
 }
